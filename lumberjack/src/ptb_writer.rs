@@ -54,14 +54,12 @@ impl PTBFormatter {
     ///
     /// Parentheses `"("` and `")"` are replaced by `"LBR"` and `"RBR"` respectively.
     ///
-    /// Nonprojective `Tree`s are cloned and projectivized before linearization.
+    /// Returns `Error` if the `Tree` is nonprojective.
     pub fn format(&self, sentence: &Tree) -> Result<String, Error> {
         if sentence.projective() {
             Ok(self.format_sub_tree(sentence, sentence.root(), None))
         } else {
-            let mut sentence = sentence.clone();
-            sentence.projectivize();
-            Ok(self.format_sub_tree(&sentence, sentence.root(), None))
+            Err(format_err!("Can not format non-projective tree."))
         }
     }
 
