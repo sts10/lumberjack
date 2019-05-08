@@ -2,6 +2,7 @@ use std::fmt;
 use std::mem;
 
 use failure::Error;
+use itertools::Itertools;
 
 use crate::Span;
 
@@ -179,6 +180,56 @@ impl fmt::Display for NonTerminal {
     }
 }
 
+#[derive(Clone, Debug, Eq, PartialEq)]
+pub struct Features {
+    map: Vec<(String, Option<String>)>
+}
+
+impl<S> From<S> for Features where S: AsRef<str> {
+    fn from(s: S) -> Self {
+        let mut vec = Vec::new();
+        for f in s.as_ref().split('|') {
+            if let Some(idx) = f.find(':') {
+                let (k, v) = f.split_at(idx);
+                vec.push((k.into(), Some(v.into())))
+            } else {
+                vec.push((f.into(), None))
+            }
+        }
+        Features {
+            map: vec
+        }
+    }
+}
+
+impl Features {
+    pub fn from_map(map: Vec<(String, Option<String>)>) -> Self {
+        Features {
+            map
+        }
+    }
+
+    pub fn inner(&self) -> &Vec<(String, Option<String>)> {
+        &self.map
+    }
+
+    pub fn inner_mut(&mut self) -> &mut Vec<(String, Option<String>)> {
+        &mut self.map
+    }
+}
+
+impl ToString for Features {
+    fn to_string(&self) -> String {
+        self.map.iter().map(|(k, v)| {
+            if let Some(v) = v {
+                format!("{}:{}", k, v)
+            } else {
+                k.to_owned()
+            }
+        }).join("|")
+    }
+}
+
 /// Struct representing a Terminal.
 ///
 /// `Terminal`s are represented by:
@@ -193,6 +244,7 @@ pub struct Terminal {
     pos: String,
     lemma: Option<String>,
     morph: Option<String>,
+    features: Option<Features>,
     span: Span,
 }
 
@@ -203,6 +255,7 @@ impl Terminal {
             pos: pos.into(),
             lemma: None,
             morph: None,
+            features: None,
             span: idx.into(),
         }
     }
@@ -235,6 +288,18 @@ impl Terminal {
         mem::replace(&mut self.pos, new_pos.into())
     }
 
+    pub fn features(&self) -> Option<&Features> {
+        self.features.as_ref()
+    }
+
+    pub fn features_mut(&mut self) -> Option<&mut Features> {
+        self.features.as_mut()
+    }
+
+    pub fn set_features(&mut self, features: Option<Features>) -> Option<Features> {
+        mem::replace(&mut self.features, features)
+    }
+
     /// Return lemma if present, else `None`.
     pub fn lemma(&self) -> Option<&str> {
         self.lemma.as_ref().map(String::as_str)
@@ -243,16 +308,6 @@ impl Terminal {
     /// Replace lemma with `new_lemma`. Return old value.
     pub fn set_lemma(&mut self, new_lemma: Option<impl Into<String>>) -> Option<String> {
         mem::replace(&mut self.lemma, new_lemma.map(Into::into))
-    }
-
-    /// Return morphological features if present, else `None`.
-    pub fn morph(&self) -> Option<&str> {
-        self.morph.as_ref().map(String::as_str)
-    }
-
-    /// Replace morphological features with `new_morph`. Return old value.
-    pub fn set_morph(&mut self, new_morph: Option<impl Into<String>>) -> Option<String> {
-        mem::replace(&mut self.morph, new_morph.map(Into::into))
     }
 }
 
@@ -276,10 +331,10 @@ mod test {
         assert_eq!(terminal.set_label("other_pos"), "pos");
         assert_eq!(terminal.label(), "other_pos");
         assert_eq!(
-            terminal.terminal_mut().unwrap().set_morph(Some("morph")),
+            terminal.terminal_mut().unwrap().set_features(Some("morph".into())),
             None
         );
-        assert_eq!(terminal.terminal().unwrap().morph(), Some("morph"));
+        assert_eq!(terminal.terminal().unwrap().features(), Some(&"morph".into()));
         assert_eq!(
             terminal.terminal_mut().unwrap().set_lemma(Some("lemma")),
             None

@@ -7,6 +7,7 @@ use pest::Parser;
 use petgraph::stable_graph::StableGraph;
 
 use crate::{Edge, Node, NonTerminal, Projectivity, Span, Terminal, Tree};
+use crate::node::Features;
 
 /// Iterator over constituency trees in a NEGRA export file.
 ///
@@ -229,7 +230,7 @@ fn process_terminal(pair: Pair<Rule>, idx: usize) -> Result<(usize, Edge, Node),
     let mut terminal = Terminal::new(form, pos, idx);
     terminal.set_lemma(Some(lemma));
     if morph != "--" {
-        terminal.set_morph(Some(morph));
+        terminal.set_features(Some(Features::from_map(vec![(morph.into(), None)])));
     }
 
     Ok((parent_id, edge.into(), Node::Terminal(terminal)))
@@ -248,6 +249,7 @@ mod tests {
     };
 
     use crate::{Edge, Node, NonTerminal, Projectivity, Span, Terminal, Tree};
+    use crate::node::Features;
 
     #[test]
     fn test_first10_ok() {
@@ -291,16 +293,16 @@ mod tests {
         let mut g = StableGraph::new();
         let mut v = Terminal::new("V", "VVFIN", 0);
         v.set_lemma(Some("v"));
-        v.set_morph(Some("3sit"));
+        v.set_features(Some("3sit".into()));
         let mut d = Terminal::new("d", "ART", 1);
         d.set_lemma(Some("d"));
-        d.set_morph(Some("nsf"));
+        d.set_features(Some("nsf".into()));
         let mut a = Terminal::new("A", "NN", 2);
         a.set_lemma(Some("a"));
-        a.set_morph(Some("nsf"));
+        a.set_features(Some("nsf".into()));
         let mut s = Terminal::new("S", "NN", 3);
         s.set_lemma(Some("s"));
-        s.set_morph(Some("asn"));
+        s.set_features(Some("asn".into()));
         let mut punct = Terminal::new("?", "$.", 4);
         punct.set_lemma(Some("?"));
 
@@ -377,7 +379,8 @@ mod tests {
         assert_eq!(edge, Edge::from(Some("HD")));
         let mut term = Terminal::new("was", "PIS", 0);
         term.set_lemma(Some("etwas"));
-        term.set_morph(Some("***"));
+        let features = Features::from_map(Some(("***".into(), None)).into_iter().collect());
+        term.set_features(Some(features));
         assert_eq!(terminal, Node::Terminal(term));
 
         let term = "#was etwas   PIS *** HD 502\n";
