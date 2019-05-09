@@ -182,10 +182,13 @@ impl fmt::Display for NonTerminal {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct Features {
-    map: Vec<(String, Option<String>)>
+    map: Vec<(String, Option<String>)>,
 }
 
-impl<S> From<S> for Features where S: AsRef<str> {
+impl<S> From<S> for Features
+where
+    S: AsRef<str>,
+{
     fn from(s: S) -> Self {
         let mut vec = Vec::new();
         for f in s.as_ref().split('|') {
@@ -196,17 +199,13 @@ impl<S> From<S> for Features where S: AsRef<str> {
                 vec.push((f.into(), None))
             }
         }
-        Features {
-            map: vec
-        }
+        Features { map: vec }
     }
 }
 
 impl Features {
     pub fn from_map(map: Vec<(String, Option<String>)>) -> Self {
-        Features {
-            map
-        }
+        Features { map }
     }
 
     pub fn inner(&self) -> &Vec<(String, Option<String>)> {
@@ -216,17 +215,46 @@ impl Features {
     pub fn inner_mut(&mut self) -> &mut Vec<(String, Option<String>)> {
         &mut self.map
     }
+
+    pub fn insert(
+        &mut self,
+        key: impl AsRef<str>,
+        val: Option<impl Into<String>>,
+    ) -> Option<String> {
+        let key = key.as_ref();
+        let val = val.map(|s| s.into());
+        for i in 0..self.map.len() {
+            if self.map[i].0 == key {
+                return mem::replace(&mut self.map[i].1, val)
+            }
+        }
+        self.map.push((key.into(), val));
+        None
+    }
+
+    pub fn get_val(&self, key: &str) -> Option<&str> {
+        self.map.iter().find_map(|(k, v)| {
+            if key == k.as_str() {
+                v.as_ref().map(|s| s.as_str())
+            } else {
+                None
+            }
+        })
+    }
 }
 
 impl ToString for Features {
     fn to_string(&self) -> String {
-        self.map.iter().map(|(k, v)| {
-            if let Some(v) = v {
-                format!("{}:{}", k, v)
-            } else {
-                k.to_owned()
-            }
-        }).join("|")
+        self.map
+            .iter()
+            .map(|(k, v)| {
+                if let Some(v) = v {
+                    format!("{}:{}", k, v)
+                } else {
+                    k.to_owned()
+                }
+            })
+            .join("|")
     }
 }
 
@@ -331,10 +359,16 @@ mod test {
         assert_eq!(terminal.set_label("other_pos"), "pos");
         assert_eq!(terminal.label(), "other_pos");
         assert_eq!(
-            terminal.terminal_mut().unwrap().set_features(Some("morph".into())),
+            terminal
+                .terminal_mut()
+                .unwrap()
+                .set_features(Some("morph".into())),
             None
         );
-        assert_eq!(terminal.terminal().unwrap().features(), Some(&"morph".into()));
+        assert_eq!(
+            terminal.terminal().unwrap().features(),
+            Some(&"morph".into())
+        );
         assert_eq!(
             terminal.terminal_mut().unwrap().set_lemma(Some("lemma")),
             None
