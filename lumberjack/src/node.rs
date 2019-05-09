@@ -2,9 +2,9 @@ use std::fmt;
 use std::mem;
 
 use failure::Error;
-use itertools::Itertools;
 
 use crate::Span;
+use crate::features::Features;
 
 /// Enum representing Nodes in a constituency tree.
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -177,84 +177,6 @@ impl NonTerminal {
 impl fmt::Display for NonTerminal {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         write!(f, "{}", self.label)
-    }
-}
-
-#[derive(Clone, Debug, Eq, PartialEq)]
-pub struct Features {
-    map: Vec<(String, Option<String>)>,
-}
-
-impl<S> From<S> for Features
-where
-    S: AsRef<str>,
-{
-    fn from(s: S) -> Self {
-        let mut vec = Vec::new();
-        for f in s.as_ref().split('|') {
-            if let Some(idx) = f.find(':') {
-                let (k, v) = f.split_at(idx);
-                vec.push((k.into(), Some(v.into())))
-            } else {
-                vec.push((f.into(), None))
-            }
-        }
-        Features { map: vec }
-    }
-}
-
-impl Features {
-    pub fn from_map(map: Vec<(String, Option<String>)>) -> Self {
-        Features { map }
-    }
-
-    pub fn inner(&self) -> &Vec<(String, Option<String>)> {
-        &self.map
-    }
-
-    pub fn inner_mut(&mut self) -> &mut Vec<(String, Option<String>)> {
-        &mut self.map
-    }
-
-    pub fn insert(
-        &mut self,
-        key: impl AsRef<str>,
-        val: Option<impl Into<String>>,
-    ) -> Option<String> {
-        let key = key.as_ref();
-        let val = val.map(|s| s.into());
-        for i in 0..self.map.len() {
-            if self.map[i].0 == key {
-                return mem::replace(&mut self.map[i].1, val)
-            }
-        }
-        self.map.push((key.into(), val));
-        None
-    }
-
-    pub fn get_val(&self, key: &str) -> Option<&str> {
-        self.map.iter().find_map(|(k, v)| {
-            if key == k.as_str() {
-                v.as_ref().map(|s| s.as_str())
-            } else {
-                None
-            }
-        })
-    }
-}
-
-impl ToString for Features {
-    fn to_string(&self) -> String {
-        self.map
-            .iter()
-            .map(|(k, v)| {
-                if let Some(v) = v {
-                    format!("{}:{}", k, v)
-                } else {
-                    k.to_owned()
-                }
-            })
-            .join("|")
     }
 }
 

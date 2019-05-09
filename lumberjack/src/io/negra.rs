@@ -6,8 +6,7 @@ use pest::iterators::Pair;
 use pest::Parser;
 use petgraph::stable_graph::StableGraph;
 
-use crate::{Edge, Node, NonTerminal, Projectivity, Span, Terminal, Tree};
-use crate::node::Features;
+use crate::{Edge, Node, NonTerminal, Projectivity, Span, Terminal, Tree, Features};
 
 /// Iterator over constituency trees in a NEGRA export file.
 ///
@@ -230,7 +229,7 @@ fn process_terminal(pair: Pair<Rule>, idx: usize) -> Result<(usize, Edge, Node),
     let mut terminal = Terminal::new(form, pos, idx);
     terminal.set_lemma(Some(lemma));
     if morph != "--" {
-        terminal.set_features(Some(Features::from_map(vec![(morph.into(), None)])));
+        terminal.set_features(Some(Features::from_vec(vec![(morph.into(), None)])));
     }
 
     Ok((parent_id, edge.into(), Node::Terminal(terminal)))
@@ -248,8 +247,7 @@ mod tests {
         negra_to_tree, process_nonterminal, process_terminal, NEGRAParser, NegraTreeIter, Rule,
     };
 
-    use crate::{Edge, Node, NonTerminal, Projectivity, Span, Terminal, Tree};
-    use crate::node::Features;
+    use crate::{Edge, Features, Node, NonTerminal, Projectivity, Span, Terminal, Tree};
 
     #[test]
     fn test_first10_ok() {
@@ -379,7 +377,7 @@ mod tests {
         assert_eq!(edge, Edge::from(Some("HD")));
         let mut term = Terminal::new("was", "PIS", 0);
         term.set_lemma(Some("etwas"));
-        let features = Features::from_map(Some(("***".into(), None)).into_iter().collect());
+        let features = Features::from_vec(Some(("***".into(), None)).into_iter().collect());
         term.set_features(Some(features));
         assert_eq!(terminal, Node::Terminal(term));
 
